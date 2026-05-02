@@ -61,7 +61,7 @@ sh /jffs/clash/uninstall.sh
 | 代理模式切换 | Rule-based / Global / Direct (直连 Clash REST API) |
 | 配置管理 | 列表切换、在线编辑保存、上传新配置 |
 | 日志查看 | 实时日志查看、清除、自动刷新 |
-| Dashboard | iframe 嵌入 Yacd / MetaCubeXD |
+| Dashboard | MetaCubeXD，WebUI 内一键安装或新窗口打开 |
 | 开机自启 | 可选，重启后自动启动 Clash |
 
 ## 架构
@@ -72,7 +72,7 @@ sh /jffs/clash/uninstall.sh
 ├── 服务控制 ──form POST──→ start_apply.htm → service-event → clash_service.sh
 ├── 大文件写入 ──SystemCmd──→ base64 decode → 文件
 ├── 配置列表/日志 ──AJAX──→ /www/user/clash/*.html (后端脚本生成)
-└── Dashboard ──iframe──→ Yacd/MetaCubeXD
+└── Dashboard ──新窗口──→ MetaCubeXD (router:9090/ui)
 ```
 
 ## config.yaml 要求

@@ -67,21 +67,6 @@
     border-bottom: 1px solid #334;
 }
 
-.clash-log-viewer {
-    background-color: #1a1a1a;
-    border: 1px solid #444;
-    color: #cccccc;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
-    padding: 12px;
-    overflow-y: auto;
-    max-height: 400px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    width: 100%;
-    -webkit-overflow-scrolling: touch;
-}
-
 .clash-config-editor {
     width: 100%;
     min-height: 350px;
@@ -97,13 +82,6 @@
 .clash-config-editor:focus {
     outline: none;
     border-color: #557788;
-}
-
-.clash-dashboard-frame {
-    width: 100%;
-    height: 500px;
-    border: 1px solid #444;
-    background-color: #1a1a1a;
 }
 
 .clash-section-header {
@@ -155,9 +133,7 @@
 <script type="text/javascript">
 var custom_settings = {};
 var statusRefreshTimer = null;
-var logRefreshTimer = null;
-var autoRefreshLogs = false;
-var dashboardVisible = false;
+var dashboardInstalled = false;
 
 function initial() {
     SetCurrentPage();
@@ -167,6 +143,7 @@ function initial() {
     updateStatus();
     loadConfigList();
     loadDashboardSettings();
+    checkDashboardInstalled();
 }
 
 function SetCurrentPage() {
@@ -417,66 +394,61 @@ function uploadConfig() {
     reader.readAsDataURL(file);
 }
 
-/* ── Logs viewer ── */
-function refreshLogs() {
+/* ── Dashboard ── */
+function loadDashboardSettings() {
+    var url = custom_settings.clash_webui_dashboard_url || '';
+    if (!url) {
+        url = 'http://' + location.hostname + ':9090/ui';
+    }
+    document.getElementById('dashboardUrlInput').value = url;
+}
+
+function checkDashboardInstalled() {
+    var dashUrl = 'http://' + location.hostname + ':9090/ui/';
     $.ajax({
-        url: '/user/clash/logs.html',
+        url: dashUrl,
         type: 'GET',
-        timeout: 5000,
-        cache: false,
+        timeout: 3000,
         success: function(data) {
-            $('#logsArea').html(data);
-            var logsDiv = document.getElementById('logsArea');
-            logsDiv.scrollTop = logsDiv.scrollHeight;
+            dashboardInstalled = true;
+            $('#dashboardStatus').html('<span style="color:#6fcf6f;font-weight:bold;">Installed</span>');
+            $('#dashboardOpenBtn').show();
+            $('#dashboardInstallBtn').hide();
         },
-        error: function() {
-            $('#logsArea').html('<div style="padding:10px;color:#c00;">Failed to load logs.</div>');
+        error: function(xhr) {
+            if (xhr.status === 200) {
+                dashboardInstalled = true;
+                $('#dashboardStatus').html('<span style="color:#6fcf6f;font-weight:bold;">Installed</span>');
+                $('#dashboardOpenBtn').show();
+                $('#dashboardInstallBtn').hide();
+                return;
+            }
+            dashboardInstalled = false;
+            $('#dashboardStatus').html('<span style="color:#cf6f6f;">Not installed</span>');
+            $('#dashboardOpenBtn').hide();
+            $('#dashboardInstallBtn').show();
         }
     });
 }
 
-function clearLogs() {
-    if (!confirm('Clear all Clash logs?')) {
+function installDashboard() {
+    if (!confirm('Download MetaCubeXD dashboard from GitHub and install to /jffs/clash/dashboard/?\n\nThis will also add external-ui to config.yaml and restart Clash.')) {
         return;
     }
-    submitAction("clear_logs", "3");
+    var cmd = "mkdir -p /jffs/clash/dashboard && " +
+        "curl -sL 'https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz' | tar xz -C /jffs/clash/dashboard && " +
+        "grep -q '^external-ui:' /jffs/clash/config.yaml || echo 'external-ui: /jffs/clash/dashboard' >> /jffs/clash/config.yaml && " +
+        "/jffs/clash/clash_service.sh restart";
+    submitSystemCmd(cmd, "15");
 }
 
-function toggleAutoRefreshLogs() {
-    autoRefreshLogs = document.getElementById('autoRefreshLogsChk').checked;
-    if (autoRefreshLogs) {
-        refreshLogs();
-        logRefreshTimer = setInterval(refreshLogs, 3000);
-    } else {
-        if (logRefreshTimer) {
-            clearInterval(logRefreshTimer);
-            logRefreshTimer = null;
-        }
+function openDashboard() {
+    var url = document.getElementById('dashboardUrlInput').value;
+    if (!url) {
+        url = 'http://' + location.hostname + ':9090/ui';
+        document.getElementById('dashboardUrlInput').value = url;
     }
-}
-
-/* ── Dashboard ── */
-function loadDashboardSettings() {
-    var url = custom_settings.clash_webui_dashboard_url || '';
-    document.getElementById('dashboardUrlInput').value = url;
-}
-
-function toggleDashboard() {
-    if (dashboardVisible) {
-        $('#dashboardContainer').hide();
-        $('#dashboardToggleBtn').val('Open Dashboard');
-        dashboardVisible = false;
-    } else {
-        var url = document.getElementById('dashboardUrlInput').value;
-        if (!url) {
-            url = 'http://' + location.hostname + ':9090/ui';
-            document.getElementById('dashboardUrlInput').value = url;
-        }
-        document.getElementById('dashboardFrame').src = url;
-        $('#dashboardContainer').show();
-        $('#dashboardToggleBtn').val('Close Dashboard');
-        dashboardVisible = true;
-    }
+    window.open(url, '_blank');
 }
 
 function saveDashboardUrl() {
@@ -644,32 +616,21 @@ function saveSecret() {
 
                     <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 
-                    <!-- ──────────────────────────────────────── -->
-                    <!-- Section E: Logs Viewer                   -->
-                    <!-- ──────────────────────────────────────── -->
-                    <div class="clash-section-header">Logs</div>
-                    <div class="clash-section-desc">View Clash runtime logs.</div>
-
-                    <div style="margin-bottom:6px;">
-                        <input type="button" class="button_gen" value="Refresh Logs" onclick="refreshLogs();">
-                        <input type="button" class="button_gen" value="Clear Logs" onclick="clearLogs();" style="margin-left:6px;">
-                        <label style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;margin-left:12px;cursor:pointer;">
-                            <input type="checkbox" id="autoRefreshLogsChk" onchange="toggleAutoRefreshLogs();" style="vertical-align:middle;margin-right:4px;">
-                            Auto-refresh
-                        </label>
-                    </div>
-
-                    <div id="logsArea" class="clash-log-viewer">Click "Refresh Logs" to load.</div>
-
                     <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 
                     <!-- ──────────────────────────────────────── -->
-                    <!-- Section F: Dashboard (iframe)            -->
+                    <!-- Section E: Dashboard                     -->
                     <!-- ──────────────────────────────────────── -->
                     <div class="clash-section-header">Dashboard</div>
-                    <div class="clash-section-desc">Open an external Clash dashboard (Yacd / MetaCubeXD) in an embedded frame.</div>
+                    <div class="clash-section-desc">Clash dashboard (MetaCubeXD) for proxy visualization and management.</div>
 
                     <table width="100%" border="0" cellpadding="4" cellspacing="0" style="margin-bottom:8px;">
+                    <tr>
+                        <td width="30%" style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Status:</td>
+                        <td>
+                            <span id="dashboardStatus" style="font-size:12px;font-family:Arial,Helvetica,sans-serif;">Checking...</span>
+                        </td>
+                    </tr>
                     <tr>
                         <td width="30%" style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Dashboard URL:</td>
                         <td>
@@ -680,11 +641,8 @@ function saveSecret() {
                     </table>
 
                     <div style="margin-bottom:8px;">
-                        <input type="button" id="dashboardToggleBtn" class="button_gen clash-toggle-btn" value="Open Dashboard" onclick="toggleDashboard();">
-                    </div>
-
-                    <div id="dashboardContainer" style="display:none;">
-                        <iframe id="dashboardFrame" class="clash-dashboard-frame" src="" frameborder="0"></iframe>
+                        <input type="button" id="dashboardInstallBtn" class="button_gen" value="Install Dashboard" onclick="installDashboard();" style="display:none;">
+                        <input type="button" id="dashboardOpenBtn" class="button_gen clash-toggle-btn" value="Open Dashboard" onclick="openDashboard();" style="display:none;">
                     </div>
 
                     <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
