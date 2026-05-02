@@ -53,7 +53,7 @@ install.sh services-start → calls clash_config.sh generate_* + clash_service.s
 - **POSIX sh only**: `#!/bin/sh`, `_var` prefix for function-scoped vars, no `[[ ]]`, no arrays
 - `local` keyword accepted (busybox ash supports it despite not being POSIX)
 - All router paths are `/jffs/clash/` — configurable via `CLASH_DIR` at top of each script
-- Logs go to `/tmp/clash.log` (RAM, not JFFS) — `CLASH_LOG="/tmp/clash.log"`
+- No file-based logs — Clash daemon output goes to `/dev/null`; status via REST API only
 - Settings via `/jffs/addons/custom_settings.txt` (8KB limit) — accessed via `am_settings_get/set`
 - `action_script` on this firmware ONLY triggers service-event with `restart_*` prefix
 - Large data (config save/upload) bypasses custom_settings via `SystemCmd` form field
@@ -73,7 +73,7 @@ install.sh services-start → calls clash_config.sh generate_* + clash_service.s
 `cmd_restart` in clash_service.sh does NOT call cmd_start synchronously. It backgrounds a delayed start:
 ```sh
 cmd_stop
-nohup sh -c 'sleep 3 && /jffs/clash/clash_service.sh start' >> /tmp/clash.log 2>&1 &
+nohup sh -c 'sleep 3 && /jffs/clash/clash_service.sh start' > /dev/null 2>&1 &
 ```
 This is intentional — synchronous stop→start in the same process context fails on the router.
 
