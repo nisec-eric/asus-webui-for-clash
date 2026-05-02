@@ -67,21 +67,51 @@
     border-bottom: 1px solid #334;
 }
 
-.clash-config-editor {
-    width: 100%;
-    min-height: 350px;
+.clash-editor-container {
+    position: relative;
+    height: 400px;
     background-color: #1a1a1a;
     border: 1px solid #444;
+    overflow: hidden;
+}
+.clash-editor-gutter {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 42px;
+    height: 100%;
+    background-color: #222;
+    border-right: 1px solid #444;
+    overflow: hidden;
+    color: #666;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    line-height: 18px;
+    padding: 10px 4px 10px 0;
+    text-align: right;
+    white-space: pre;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.clash-config-editor {
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a;
+    border: none;
     color: #cccccc;
     font-family: 'Courier New', Courier, monospace;
     font-size: 12px;
+    line-height: 18px;
     padding: 10px;
-    resize: vertical;
+    padding-left: 54px;
+    box-sizing: border-box;
+    resize: none;
+    white-space: pre;
+    overflow: auto;
     -webkit-overflow-scrolling: touch;
 }
 .clash-config-editor:focus {
     outline: none;
-    border-color: #557788;
 }
 
 .clash-section-header {
@@ -323,30 +353,34 @@ function viewCurrentConfig() {
         timeout: 5000,
         cache: false,
         success: function(data) {
-            $('#configContent').html(data);
-        },
-        error: function() {
-            $('#configContent').html('<div style="padding:10px;color:#c00;">Failed to load configuration.</div>');
-        }
-    });
-}
-
-function editCurrentConfig() {
-    $.ajax({
-        url: '/user/clash/config.html',
-        type: 'GET',
-        timeout: 5000,
-        cache: false,
-        success: function(data) {
             var temp = document.createElement('div');
             temp.innerHTML = data;
             var rawText = temp.textContent || temp.innerText || '';
             document.getElementById('configEditor').value = rawText;
+            $('#configEditorWrap').show();
+            updateGutter();
         },
         error: function() {
-            alert('Failed to load configuration for editing.');
+            document.getElementById('configEditor').value = 'Failed to load configuration.';
         }
     });
+}
+
+function updateGutter() {
+    var editor = document.getElementById('configEditor');
+    var gutter = document.getElementById('editorGutter');
+    var lines = editor.value.split('\n').length;
+    var html = '';
+    for (var i = 1; i <= lines; i++) {
+        html += i + '\n';
+    }
+    gutter.textContent = html;
+}
+
+function syncGutterScroll() {
+    var editor = document.getElementById('configEditor');
+    var gutter = document.getElementById('editorGutter');
+    gutter.scrollTop = editor.scrollTop;
 }
 
 function saveConfig() {
@@ -527,99 +561,7 @@ function saveSecret() {
                     </div>
 
                     <!-- ──────────────────────────────────────── -->
-                    <!-- Section B: Service Controls              -->
-                    <!-- ──────────────────────────────────────── -->
-                    <div class="clash-controls-bar">
-                        <div class="clash-section-header">Service Controls</div>
-                        <div class="clash-section-desc">Start, stop, or restart the Clash service.</div>
-                        <div class="clash-btn-group" style="padding-top:4px;">
-                            <input type="button" class="button_gen" value="Start" onclick="startClash();">
-                            <input type="button" class="button_gen" value="Stop" onclick="stopClash();">
-                            <input type="button" class="button_gen" value="Restart" onclick="restartClash();">
-                        </div>
-                        <div style="margin-top:8px;">
-                            <label style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;cursor:pointer;">
-                                <input type="checkbox" id="autoStartChk"
-                                    onchange="toggleAutoStart();"
-                                    style="vertical-align:middle;margin-right:4px;">
-                                Auto-start Clash on boot
-                            </label>
-                        </div>
-                    </div>
-
-                    <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
-
-                    <!-- ──────────────────────────────────────── -->
-                    <!-- Section C: Proxy Mode Selector           -->
-                    <!-- ──────────────────────────────────────── -->
-                    <div class="clash-section-header">Proxy Mode</div>
-                    <div class="clash-section-desc">Select how Clash routes traffic. Requires Clash API to be reachable.</div>
-                    <table width="100%" border="0" cellpadding="4" cellspacing="0" style="margin-bottom:10px;">
-                    <tr>
-                        <td width="30%" style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Mode:</td>
-                        <td>
-                            <select id="clashModeSelect" class="input_option" style="width:200px;">
-                                <option value="rule" selected>Rule-based</option>
-                                <option value="global">Global</option>
-                                <option value="direct">Direct</option>
-                            </select>
-                            <input type="button" class="button_gen" value="Apply Mode" onclick="applyMode();" style="margin-left:8px;">
-                        </td>
-                    </tr>
-                    </table>
-
-                    <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
-
-                    <!-- ──────────────────────────────────────── -->
-                    <!-- Section D: Configuration Management      -->
-                    <!-- ──────────────────────────────────────── -->
-                    <div class="clash-section-header">Configuration</div>
-                    <div class="clash-section-desc">Manage Clash configuration files stored in /jffs/clash/.</div>
-
-                    <!-- Config file selector -->
-                    <table width="100%" border="0" cellpadding="4" cellspacing="0" class="FormTable" style="margin-bottom:10px;">
-                    <tr>
-                        <td class="FormTableDesc" width="30%">Config File:</td>
-                        <td>
-                            <select id="clashConfigSelect" class="input_option" style="width:240px;">
-                                <option value="">Loading...</option>
-                            </select>
-                            <input type="button" class="button_gen" value="Switch Config" onclick="switchConfig();" style="margin-left:8px;">
-                        </td>
-                    </tr>
-                    </table>
-
-                    <!-- View current config -->
-                    <div style="margin-bottom:8px;">
-                        <input type="button" class="button_gen" value="View Current Config" onclick="viewCurrentConfig();">
-                        <input type="button" class="button_gen" value="Edit Config" onclick="editCurrentConfig();" style="margin-left:8px;">
-                    </div>
-                    <div id="configContent" style="margin-bottom:12px;"></div>
-
-                    <!-- Config editor textarea -->
-                    <div id="configEditorWrap" style="margin-bottom:10px;">
-                        <div style="color:#8f8f8f;font-size:11px;font-family:Arial,Helvetica,sans-serif;margin-bottom:4px;">
-                            Edit configuration below, then click Save to apply:
-                        </div>
-                        <textarea id="configEditor" class="clash-config-editor" rows="18" spellcheck="false"></textarea>
-                        <div style="margin-top:6px;">
-                            <input type="button" class="button_gen" value="Save &amp; Apply" onclick="saveConfig();">
-                        </div>
-                    </div>
-
-                    <!-- Upload config -->
-                    <div class="clash-upload-row">
-                        <span style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Upload new config:</span>
-                        <input type="file" id="configUploadFile" accept=".yaml,.yml" style="margin:0 8px;">
-                        <input type="button" class="button_gen" value="Upload" onclick="uploadConfig();">
-                    </div>
-
-                    <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
-
-                    <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
-
-                    <!-- ──────────────────────────────────────── -->
-                    <!-- Section E: Dashboard                     -->
+                    <!-- Section B: Dashboard                     -->
                     <!-- ──────────────────────────────────────── -->
                     <div class="clash-section-header">Dashboard</div>
                     <div class="clash-section-desc">Clash dashboard (MetaCubeXD) for proxy visualization and management.</div>
@@ -648,7 +590,98 @@ function saveSecret() {
                     <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 
                     <!-- ──────────────────────────────────────── -->
-                    <!-- Section G: Settings                      -->
+                    <!-- Section C: Service Controls              -->
+                    <!-- ──────────────────────────────────────── -->
+                    <div class="clash-controls-bar">
+                        <div class="clash-section-header">Service Controls</div>
+                        <div class="clash-section-desc">Start, stop, or restart the Clash service.</div>
+                        <div class="clash-btn-group" style="padding-top:4px;">
+                            <input type="button" class="button_gen" value="Start" onclick="startClash();">
+                            <input type="button" class="button_gen" value="Stop" onclick="stopClash();">
+                            <input type="button" class="button_gen" value="Restart" onclick="restartClash();">
+                        </div>
+                        <div style="margin-top:8px;">
+                            <label style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;cursor:pointer;">
+                                <input type="checkbox" id="autoStartChk"
+                                    onchange="toggleAutoStart();"
+                                    style="vertical-align:middle;margin-right:4px;">
+                                Auto-start Clash on boot
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
+
+                    <!-- ──────────────────────────────────────── -->
+                    <!-- Section D: Proxy Mode Selector           -->
+                    <!-- ──────────────────────────────────────── -->
+                    <div class="clash-section-header">Proxy Mode</div>
+                    <div class="clash-section-desc">Select how Clash routes traffic. Requires Clash API to be reachable.</div>
+                    <table width="100%" border="0" cellpadding="4" cellspacing="0" style="margin-bottom:10px;">
+                    <tr>
+                        <td width="30%" style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Mode:</td>
+                        <td>
+                            <select id="clashModeSelect" class="input_option" style="width:200px;">
+                                <option value="rule" selected>Rule-based</option>
+                                <option value="global">Global</option>
+                                <option value="direct">Direct</option>
+                            </select>
+                            <input type="button" class="button_gen" value="Apply Mode" onclick="applyMode();" style="margin-left:8px;">
+                        </td>
+                    </tr>
+                    </table>
+
+                    <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
+
+                    <!-- ──────────────────────────────────────── -->
+                    <!-- Section E: Configuration Management      -->
+                    <!-- ──────────────────────────────────────── -->
+                    <div class="clash-section-header">Configuration</div>
+                    <div class="clash-section-desc">Manage Clash configuration files stored in /jffs/clash/.</div>
+
+                    <!-- Config file selector -->
+                    <table width="100%" border="0" cellpadding="4" cellspacing="0" class="FormTable" style="margin-bottom:10px;">
+                    <tr>
+                        <td class="FormTableDesc" width="30%">Config File:</td>
+                        <td>
+                            <select id="clashConfigSelect" class="input_option" style="width:240px;">
+                                <option value="">Loading...</option>
+                            </select>
+                            <input type="button" class="button_gen" value="Switch Config" onclick="switchConfig();" style="margin-left:8px;">
+                        </td>
+                    </tr>
+                    </table>
+
+                    <!-- View/Edit config -->
+                    <div style="margin-bottom:8px;">
+                        <input type="button" class="button_gen" value="View / Edit Config" onclick="viewCurrentConfig();">
+                    </div>
+
+                    <!-- Config editor textarea -->
+                    <div id="configEditorWrap" style="margin-bottom:10px;display:none;">
+                        <div style="color:#8f8f8f;font-size:11px;font-family:Arial,Helvetica,sans-serif;margin-bottom:4px;">
+                            Edit configuration below, then click Save to apply:
+                        </div>
+                        <div class="clash-editor-container">
+                            <div id="editorGutter" class="clash-editor-gutter"></div>
+                            <textarea id="configEditor" class="clash-config-editor" rows="18" spellcheck="false" wrap="off" oninput="updateGutter();" onscroll="syncGutterScroll();"></textarea>
+                        </div>
+                        <div style="margin-top:6px;">
+                            <input type="button" class="button_gen" value="Save &amp; Apply" onclick="saveConfig();">
+                        </div>
+                    </div>
+
+                    <!-- Upload config -->
+                    <div class="clash-upload-row">
+                        <span style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Upload new config:</span>
+                        <input type="file" id="configUploadFile" accept=".yaml,.yml" style="margin:0 8px;">
+                        <input type="button" class="button_gen" value="Upload" onclick="uploadConfig();">
+                    </div>
+
+                    <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
+
+                    <!-- ──────────────────────────────────────── -->
+                    <!-- Section F: Settings                      -->
                     <!-- ──────────────────────────────────────── -->
                     <div class="clash-section-header">API Settings</div>
                     <div class="clash-section-desc">Clash RESTful API secret for authentication.</div>
