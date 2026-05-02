@@ -3,7 +3,6 @@
 
 CLASH_DIR="/jffs/clash"
 CLASH_CONFIG="$CLASH_DIR/config.yaml"
-CLASH_LOG="/tmp/clash.log"
 
 log_msg() {
     logger -t "clash-webui" "$1"
@@ -111,20 +110,6 @@ do_show() {
     fi
 }
 
-do_logs() {
-    local lines="${1:-100}"
-    if [ -f "$CLASH_LOG" ]; then
-        tail -n "$lines" "$CLASH_LOG" 2>/dev/null
-    else
-        echo "No logs available"
-    fi
-}
-
-do_clear_logs() {
-    : > "$CLASH_LOG"
-    log_msg "Cleared clash log file"
-}
-
 do_generate_config_list_html() {
     local current
     current=$(do_current)
@@ -151,17 +136,6 @@ do_generate_config_content_html() {
     printf '\n</pre>\n'
 }
 
-do_generate_logs_html() {
-    local lines="${1:-100}"
-    printf '<div style="font-family:monospace;background:#1a1a1a;color:#ccc;padding:10px;font-size:11px;overflow:auto;max-height:400px;border:1px solid #444;white-space:pre-wrap;">\n'
-    if [ -f "$CLASH_LOG" ]; then
-        tail -n "$lines" "$CLASH_LOG" 2>/dev/null | html_escape
-    else
-        printf 'No logs available'
-    fi
-    printf '\n</div>\n'
-}
-
 case "$1" in
     list)
         do_list
@@ -181,23 +155,14 @@ case "$1" in
     show)
         do_show
         ;;
-    logs)
-        do_logs "$2"
-        ;;
-    clear_logs)
-        do_clear_logs
-        ;;
     generate_config_list_html)
         do_generate_config_list_html
         ;;
     generate_config_content_html)
         do_generate_config_content_html
         ;;
-    generate_logs_html)
-        do_generate_logs_html "$2"
-        ;;
     *)
-        echo "Usage: $0 {list|current|switch|save|show|logs|clear_logs|upload_save|generate_config_list_html|generate_config_content_html|generate_logs_html}"
+        echo "Usage: $0 {list|current|switch|save|show|upload_save|generate_config_list_html|generate_config_content_html}"
         exit 1
         ;;
 esac

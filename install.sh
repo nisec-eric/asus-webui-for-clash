@@ -90,7 +90,6 @@ setup_html_dir() {
     mkdir -p /www/user/clash
     "$CLASH_DIR/clash_config.sh" generate_config_list_html > /www/user/clash/config_list.html
     "$CLASH_DIR/clash_config.sh" generate_config_content_html > /www/user/clash/config.html
-    "$CLASH_DIR/clash_config.sh" generate_logs_html > /www/user/clash/logs.html
     print_status "Generated HTML fragments in /www/user/clash/"
 }
 
@@ -143,7 +142,6 @@ if [ "$1" = "restart" ] && [ "$2" = "clash" ]; then
     mkdir -p /www/user/clash
     /jffs/clash/clash_config.sh generate_config_list_html > /www/user/clash/config_list.html
     /jffs/clash/clash_config.sh generate_config_content_html > /www/user/clash/config.html
-    /jffs/clash/clash_config.sh generate_logs_html > /www/user/clash/logs.html
 fi
 HANDLER
     printf '%s\n' "$_marker_end" >> "$_hook_file"
@@ -190,7 +188,6 @@ fi
 mkdir -p /www/user/clash
 /jffs/clash/clash_config.sh generate_config_list_html > /www/user/clash/config_list.html 2>/dev/null
 /jffs/clash/clash_config.sh generate_config_content_html > /www/user/clash/config.html 2>/dev/null
-/jffs/clash/clash_config.sh generate_logs_html > /www/user/clash/logs.html 2>/dev/null
 
 _auto_start=$(am_settings_get clash_webui_auto_start 2>/dev/null)
 if [ "$_auto_start" = "1" ]; then

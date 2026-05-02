@@ -6,7 +6,6 @@ CLASH_DIR="/jffs/clash"
 CLASH_BIN="$CLASH_DIR/clash"
 CLASH_CONFIG="$CLASH_DIR/config.yaml"
 CLASH_PID_FILE="$CLASH_DIR/clash.pid"
-CLASH_LOG="/tmp/clash.log"
 CLASH_EXT_CTL="127.0.0.1:9090"
 
 log_msg() {
@@ -115,7 +114,7 @@ cmd_start() {
     fi
 
     log_msg "starting clash daemon"
-    nohup "$CLASH_BIN" -d "$CLASH_DIR" -f "$CLASH_CONFIG" >> "$CLASH_LOG" 2>&1 &
+    nohup "$CLASH_BIN" -d "$CLASH_DIR" -f "$CLASH_CONFIG" > /dev/null 2>&1 &
     _new_pid=$!
     echo "$_new_pid" > "$CLASH_PID_FILE"
 
@@ -179,7 +178,7 @@ cmd_stop() {
 
 cmd_restart() {
     cmd_stop
-    nohup sh -c 'sleep 3 && /jffs/clash/clash_service.sh start' >> /tmp/clash.log 2>&1 &
+    nohup sh -c 'sleep 3 && /jffs/clash/clash_service.sh start' > /dev/null 2>&1 &
     log_msg "restart scheduled: stop done, start in 3s"
 }
 
