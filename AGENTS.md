@@ -31,20 +31,16 @@
 
 ```
 clash.asp (browser)
-  ├── submitAction("start|stop|restart|switch|clear_logs|save_settings")
+  ├── submitAction("start|stop|restart|switch|save_settings")
   │     → action_script="restart_clash" → /jffs/scripts/service-event
   │       → reads clash_webui_action from custom_settings
   │         → dispatches to clash_service.sh or clash_config.sh
-  │
-  ├── submitSystemCmd(cmd)  [for saveConfig, uploadConfig]
-  │     → SystemCmd field → direct shell execution by httpd
   │
   ├── AJAX → http://router:9090/configs  [status, mode switch]
   │
   └── AJAX → /user/clash/*.html  [config list, config content, logs]
 
 clash_config.sh switch → calls clash_service.sh restart
-clash_config.sh save   → calls clash_service.sh restart
 install.sh services-start → calls clash_config.sh generate_* + clash_service.sh start
 ```
 
@@ -56,13 +52,13 @@ install.sh services-start → calls clash_config.sh generate_* + clash_service.s
 - No file-based logs — Clash daemon output goes to `/dev/null`; status via REST API only
 - Settings via `/jffs/addons/custom_settings.txt` (8KB limit) — accessed via `am_settings_get/set`
 - `action_script` on this firmware ONLY triggers service-event with `restart_*` prefix
-- Large data (config save/upload) bypasses custom_settings via `SystemCmd` form field
+- Config editing/upload NOT supported via WebUI — config files managed directly on router
 
 ## ANTI-PATTERNS
 
 - **NEVER** use `jQuery.noConflict()` — breaks scrollbar on 388.x firmware
 - **NEVER** use `fetch()`, arrow functions, template literals, `const/let` in ASP JS
-- **NEVER** save large content (>1KB) through `amng_custom`/custom_settings — use SystemCmd
+- **NEVER** save large content (>1KB) through `amng_custom`/custom_settings — config files managed directly on router
 - **NEVER** use action_script values other than `restart_clash` — firmware only passes `restart_*` to service-event
 - **NEVER** write logs or temp files to `/jffs/` — it's small persistent flash, use `/tmp/`
 - **NEVER** use bash-specific features — target is busybox ash
