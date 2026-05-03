@@ -129,8 +129,11 @@ if [ "$1" = "restart" ] && [ "$2" = "clash" ]; then
             _cfg=$(am_settings_get clash_webui_switch_config)
             /jffs/clash/clash_config.sh switch "$_cfg"
             ;;
-        clear_logs)
-            /jffs/clash/clash_config.sh clear_logs
+        install_dashboard)
+            mkdir -p /jffs/clash/dashboard
+            curl -sL 'https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz' | tar xz -C /jffs/clash/dashboard
+            grep -q '^external-ui:' /jffs/clash/config.yaml || echo 'external-ui: /jffs/clash/dashboard' >> /jffs/clash/config.yaml
+            /jffs/clash/clash_service.sh restart
             ;;
         save_settings)
             ;;

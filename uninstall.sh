@@ -55,7 +55,7 @@ unregister_service_event() {
     fi
 
     _start_line=$(grep -n "$_marker_start" "$_hook_file" | head -1 | cut -f1 -d':')
-    _end_line=$(grep -n "$_marker_end" "$_hook_file" | head -1 | cut -f1 -':')
+    _end_line=$(grep -n "$_marker_end" "$_hook_file" | head -1 | cut -f1 -d':')
 
     if [ -n "$_start_line" ] && [ -n "$_end_line" ]; then
         sed -i "$_start_line,${_end_line}d" "$_hook_file"
@@ -89,8 +89,7 @@ clean_settings() {
     if [ -f /usr/sbin/helper.sh ]; then
         source /usr/sbin/helper.sh
         for key in clash_webui_secret clash_webui_auto_start clash_webui_dashboard_url \
-                   clash_webui_action clash_webui_switch_config clash_webui_save_config \
-                   clash_webui_upload_name clash_webui_upload_content clash_webui_clear_logs; do
+                   clash_webui_action clash_webui_switch_config; do
             am_settings_set "$key" "" 2>/dev/null
         done
         print_status "Cleaned custom_settings entries."
