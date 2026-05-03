@@ -61,47 +61,6 @@ do_switch() {
     fi
 }
 
-do_save() {
-    local b64_content="$1"
-    if [ -z "$b64_content" ]; then
-        echo "Error: no content provided"
-        return 1
-    fi
-
-    local decoded
-    decoded=$(echo "$b64_content" | base64 -d 2>/dev/null)
-    if [ -z "$decoded" ]; then
-        echo "Error: failed to decode base64 content"
-        return 1
-    fi
-
-    cp "$CLASH_CONFIG" "${CLASH_CONFIG}.bak"
-    echo "$b64_content" | base64 -d > "$CLASH_CONFIG"
-    log_msg "Saved new config via web UI"
-
-    if [ -x "$CLASH_DIR/clash_service.sh" ]; then
-        "$CLASH_DIR/clash_service.sh" restart
-    fi
-}
-
-do_upload_save() {
-    local filename="$1"
-    local b64_content="$2"
-
-    if [ -z "$filename" ] || [ -z "$b64_content" ]; then
-        echo "Error: filename and content required"
-        return 1
-    fi
-    if ! validate_filename "$filename"; then
-        echo "Error: invalid filename"
-        log_msg "Rejected invalid filename in upload: $filename"
-        return 1
-    fi
-
-    echo "$b64_content" | base64 -d > "$CLASH_DIR/$filename"
-    log_msg "Uploaded config file: $filename"
-}
-
 do_show() {
     if [ -f "$CLASH_CONFIG" ]; then
         cat "$CLASH_CONFIG"
@@ -127,7 +86,7 @@ do_generate_config_list_html() {
 }
 
 do_generate_config_content_html() {
-    printf '<pre style="background:#1a1a1a;color:#ccc;padding:15px;font-size:12px;overflow:auto;max-height:500px;border:1px solid #444;">\n'
+    printf '%s\n' '<pre style="background:#1a1a1a;color:#ccc;padding:15px;font-size:12px;max-height:500px;overflow-y:auto;border:1px solid #444;white-space:pre-wrap;word-wrap:break-word;margin:0;">'
     if [ -f "$CLASH_CONFIG" ]; then
         html_escape < "$CLASH_CONFIG"
     else
@@ -146,12 +105,6 @@ case "$1" in
     switch)
         do_switch "$2"
         ;;
-    save)
-        do_save "$2"
-        ;;
-    upload_save)
-        do_upload_save "$2" "$3"
-        ;;
     show)
         do_show
         ;;
@@ -162,7 +115,7 @@ case "$1" in
         do_generate_config_content_html
         ;;
     *)
-        echo "Usage: $0 {list|current|switch|save|show|upload_save|generate_config_list_html|generate_config_content_html}"
+        echo "Usage: $0 {list|current|switch|show|generate_config_list_html|generate_config_content_html}"
         exit 1
         ;;
 esac

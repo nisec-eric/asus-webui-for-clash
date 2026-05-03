@@ -67,53 +67,6 @@
     border-bottom: 1px solid #334;
 }
 
-.clash-editor-container {
-    position: relative;
-    height: 400px;
-    background-color: #1a1a1a;
-    border: 1px solid #444;
-    overflow: hidden;
-}
-.clash-editor-gutter {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 42px;
-    height: 100%;
-    background-color: #222;
-    border-right: 1px solid #444;
-    overflow: hidden;
-    color: #666;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
-    line-height: 18px;
-    padding: 10px 4px 10px 0;
-    text-align: right;
-    white-space: pre;
-    -webkit-user-select: none;
-    user-select: none;
-}
-.clash-config-editor {
-    width: 100%;
-    height: 100%;
-    background-color: #1a1a1a;
-    border: none;
-    color: #cccccc;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
-    line-height: 18px;
-    padding: 10px;
-    padding-left: 54px;
-    box-sizing: border-box;
-    resize: none;
-    white-space: pre;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-}
-.clash-config-editor:focus {
-    outline: none;
-}
-
 .clash-section-header {
     font-size: 13px;
     font-weight: bold;
@@ -135,15 +88,6 @@
 .clash-btn-group input[type="button"],
 .clash-btn-group input[type="submit"] {
     margin-right: 6px;
-}
-
-.clash-upload-row {
-    padding: 6px 0;
-}
-.clash-upload-row input[type="file"] {
-    color: #ccc;
-    font-size: 12px;
-    font-family: Arial, Helvetica, sans-serif;
 }
 
 .clash-toggle-btn {
@@ -218,17 +162,7 @@ function getApiHeaders() {
 function submitAction(action, wait) {
     custom_settings.clash_webui_action = action;
     document.getElementById('amng_custom').value = JSON.stringify(custom_settings);
-    document.getElementById('SystemCmd').value = "";
     document.form.action_script.value = "restart_clash";
-    document.form.action_wait.value = wait || "5";
-    showLoading();
-    document.form.submit();
-}
-
-function submitSystemCmd(cmd, wait) {
-    document.getElementById('SystemCmd').value = cmd;
-    document.getElementById('amng_custom').value = "";
-    document.form.action_script.value = "";
     document.form.action_wait.value = wait || "5";
     showLoading();
     document.form.submit();
@@ -347,88 +281,39 @@ function switchConfig() {
 }
 
 function viewCurrentConfig() {
+    var el = document.getElementById('configContent');
+    if (!el) return;
+    if (el.style.display === 'block') {
+        el.style.display = 'none';
+        return;
+    }
     $.ajax({
         url: '/user/clash/config.html',
         type: 'GET',
-        timeout: 5000,
+        timeout: 15000,
         cache: false,
         success: function(data) {
-            var temp = document.createElement('div');
-            temp.innerHTML = data;
-            var rawText = temp.textContent || temp.innerText || '';
-            document.getElementById('configEditor').value = rawText;
-            $('#configEditorWrap').show();
-            updateGutter();
+            el.innerHTML = data;
+            el.style.display = 'block';
+            var pre = el.getElementsByTagName('pre')[0];
+            if (pre) {
+                var text = pre.innerHTML;
+                var lines = text.split('\n');
+                var html = '';
+                for (var i = 0; i < lines.length; i++) {
+                    var num = i + 1;
+                    html += '<span style="display:inline-block;width:40px;color:#666;text-align:right;padding-right:10px;user-select:none;-webkit-user-select:none;">' + num + '</span>' + lines[i] + '\n';
+                }
+                pre.innerHTML = html;
+            }
         },
-        error: function() {
-            document.getElementById('configEditor').value = 'Failed to load configuration.';
+        error: function(xhr) {
+            el.innerHTML = '<div style="padding:10px;color:#c00;">Failed to load. Status: ' + (xhr ? xhr.status : 'unknown') + '</div>';
+            el.style.display = 'block';
         }
     });
 }
 
-function updateGutter() {
-    var editor = document.getElementById('configEditor');
-    var gutter = document.getElementById('editorGutter');
-    var lines = editor.value.split('\n').length;
-    var html = '';
-    for (var i = 1; i <= lines; i++) {
-        html += i + '\n';
-    }
-    gutter.textContent = html;
-}
-
-function syncGutterScroll() {
-    var editor = document.getElementById('configEditor');
-    var gutter = document.getElementById('editorGutter');
-    gutter.scrollTop = editor.scrollTop;
-}
-
-function saveConfig() {
-    var content = document.getElementById('configEditor').value;
-    if (!content || !content.length) {
-        alert('Configuration content is empty.');
-        return;
-    }
-    if (!confirm('Save and apply this configuration? This will restart Clash.')) {
-        return;
-    }
-    var b64 = btoa(unescape(encodeURIComponent(content)));
-    var cmd = "echo '" + b64 + "' | base64 -d > /tmp/clash_webui_config.tmp && " +
-        "cp /jffs/clash/config.yaml /jffs/clash/config.yaml.bak && " +
-        "mv /tmp/clash_webui_config.tmp /jffs/clash/config.yaml && " +
-        "/jffs/clash/clash_service.sh restart && " +
-        "/jffs/clash/clash_config.sh generate_config_list_html > /www/user/clash/config_list.html && " +
-        "/jffs/clash/clash_config.sh generate_config_content_html > /www/user/clash/config.html";
-    submitSystemCmd(cmd, "10");
-}
-
-function uploadConfig() {
-    var fileInput = document.getElementById('configUploadFile');
-    if (!fileInput.files || !fileInput.files.length) {
-        alert('Please select a file to upload.');
-        return;
-    }
-    var file = fileInput.files[0];
-    var fileName = file.name;
-    if (!fileName.match(/\.ya?ml$/i)) {
-        alert('Only .yaml and .yml files are allowed.');
-        return;
-    }
-    var reader = new FileReader();
-    reader.onload = function(e) {
-        var b64Content = e.target.result.split(',')[1];
-        if (!b64Content) {
-            alert('Failed to read file content.');
-            return;
-        }
-        var cmd = "echo '" + b64Content + "' | base64 -d > /jffs/clash/" + fileName + " && " +
-            "/jffs/clash/clash_config.sh generate_config_list_html > /www/user/clash/config_list.html";
-        submitSystemCmd(cmd, "5");
-    };
-    reader.readAsDataURL(file);
-}
-
-/* ── Dashboard ── */
 function loadDashboardSettings() {
     var url = custom_settings.clash_webui_dashboard_url || '';
     if (!url) {
@@ -466,14 +351,10 @@ function checkDashboardInstalled() {
 }
 
 function installDashboard() {
-    if (!confirm('Download MetaCubeXD dashboard from GitHub and install to /jffs/clash/dashboard/?\n\nThis will also add external-ui to config.yaml and restart Clash.')) {
+    if (!confirm('Download MetaCubeXD dashboard from GitHub and install to /jffs/clash/dashboard?\n\nThis will also add external-ui to config.yaml and restart Clash.')) {
         return;
     }
-    var cmd = "mkdir -p /jffs/clash/dashboard && " +
-        "curl -sL 'https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz' | tar xz -C /jffs/clash/dashboard && " +
-        "grep -q '^external-ui:' /jffs/clash/config.yaml || echo 'external-ui: /jffs/clash/dashboard' >> /jffs/clash/config.yaml && " +
-        "/jffs/clash/clash_service.sh restart";
-    submitSystemCmd(cmd, "15");
+    submitAction("install_dashboard", "15");
 }
 
 function openDashboard() {
@@ -524,8 +405,8 @@ function saveSecret() {
     <input type="hidden" name="action_script" value="">
     <input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
     <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
-    <input type="hidden" name="amng_custom" id="amng_custom" value="">
-    <input type="hidden" name="SystemCmd" id="SystemCmd" value="">
+<input type="hidden" name="amng_custom" id="amng_custom" value="">
+
 
     <table class="content" align="center" cellpadding="0" cellspacing="0">
     <tr>
@@ -652,31 +533,11 @@ function saveSecret() {
                     </tr>
                     </table>
 
-                    <!-- View/Edit config -->
+                    <!-- View config -->
                     <div style="margin-bottom:8px;">
-                        <input type="button" class="button_gen" value="View / Edit Config" onclick="viewCurrentConfig();">
+                        <input type="button" class="button_gen" value="View Config" onclick="viewCurrentConfig();">
                     </div>
-
-                    <!-- Config editor textarea -->
-                    <div id="configEditorWrap" style="margin-bottom:10px;display:none;">
-                        <div style="color:#8f8f8f;font-size:11px;font-family:Arial,Helvetica,sans-serif;margin-bottom:4px;">
-                            Edit configuration below, then click Save to apply:
-                        </div>
-                        <div class="clash-editor-container">
-                            <div id="editorGutter" class="clash-editor-gutter"></div>
-                            <textarea id="configEditor" class="clash-config-editor" rows="18" spellcheck="false" wrap="off" oninput="updateGutter();" onscroll="syncGutterScroll();"></textarea>
-                        </div>
-                        <div style="margin-top:6px;">
-                            <input type="button" class="button_gen" value="Save &amp; Apply" onclick="saveConfig();">
-                        </div>
-                    </div>
-
-                    <!-- Upload config -->
-                    <div class="clash-upload-row">
-                        <span style="color:#fff;font-size:12px;font-family:Arial,Helvetica,sans-serif;">Upload new config:</span>
-                        <input type="file" id="configUploadFile" accept=".yaml,.yml" style="margin:0 8px;">
-                        <input type="button" class="button_gen" value="Upload" onclick="uploadConfig();">
-                    </div>
+                    <div id="configContent" style="display:none;margin-bottom:10px;max-width:100%;overflow:auto;"></div>
 
                     <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 
