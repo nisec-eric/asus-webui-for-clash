@@ -8,11 +8,11 @@
 ```
 ./
 ├── clash_service.sh    # Clash daemon lifecycle (start/stop/restart/status/mode)
-├── clash_config.sh     # Config file CRUD + HTML fragment generation
+├── clash_config.sh     # Config list/switch/view + HTML fragment generation
 ├── install.sh          # Page mounting, menu injection, hook registration
 ├── uninstall.sh        # Reverse of install
 └── www/
-    └── clash.asp       # Single-file WebUI (HTML+CSS+JS, 719 lines)
+    └── clash.asp       # Single-file WebUI (HTML+CSS+JS)
 ```
 
 ## WHERE TO LOOK
@@ -31,14 +31,14 @@
 
 ```
 clash.asp (browser)
-  ├── submitAction("start|stop|restart|switch|save_settings")
+  ├── submitAction("start|stop|restart|switch|install_dashboard|save_settings")
   │     → action_script="restart_clash" → /jffs/scripts/service-event
   │       → reads clash_webui_action from custom_settings
   │         → dispatches to clash_service.sh or clash_config.sh
   │
   ├── AJAX → http://router:9090/configs  [status, mode switch]
   │
-  └── AJAX → /user/clash/*.html  [config list, config content, logs]
+  └── AJAX → /user/clash/*.html  [config list, config content]
 
 clash_config.sh switch → calls clash_service.sh restart
 install.sh services-start → calls clash_config.sh generate_* + clash_service.sh start
